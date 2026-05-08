@@ -49,19 +49,29 @@ import typing_extensions as typing
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
-# Gemini Client Initialization
+# Gemini Client — lazy init to avoid startup crash
 # ──────────────────────────────────────────────
 
-if settings.GEMINI_API_KEY:
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
-elif settings.GOOGLE_CLOUD_PROJECT:
-    client = genai.Client(
-        vertexai=True,
-        project=settings.GOOGLE_CLOUD_PROJECT,
-        location=settings.GOOGLE_CLOUD_LOCATION,
-    )
-else:
-    client = genai.Client(api_key="")
+_client: Optional[genai.Client] = None
+
+
+def _get_client() -> genai.Client:
+    global _client
+    if _client is not None:
+        return _client
+    if settings.GEMINI_API_KEY:
+        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    elif settings.GOOGLE_CLOUD_PROJECT:
+        _client = genai.Client(
+            vertexai=True,
+            project=settings.GOOGLE_CLOUD_PROJECT,
+            location=settings.GOOGLE_CLOUD_LOCATION,
+        )
+    else:
+        raise RuntimeError(
+            "No AI credentials configured. Set GEMINI_API_KEY or GOOGLE_CLOUD_PROJECT."
+        )
+    return _client
 
 # ──────────────────────────────────────────────
 # TypedDict schemas for Gemini structured output
@@ -288,7 +298,7 @@ def analyze_vibe(images: list[bytes]) -> dict[str, object]:
         )
 
     try:
-        response = client.models.generate_content(
+        response = _get_client().models.generate_content(
             model=GEMINI_MODEL,
             contents=contents,
             config=types.GenerateContentConfig(
@@ -585,7 +595,7 @@ Generate exactly {num_days} days.
 """
 
     try:
-        response = client.models.generate_content(
+        response = _get_client().models.generate_content(
             model=GEMINI_MODEL,
             contents=[prompt],
             config=types.GenerateContentConfig(
