@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import type { VibeProfile, PlanningConstraints } from "@/types";
 import { ItinerarySchema } from "@/lib/schemas";
+import { apiUrl } from "@/lib/api";
 
 /** Valid group type options. */
 const GROUP_TYPES = ["Solo", "Couple", "Friends", "Family"] as const;
@@ -40,7 +41,7 @@ const CURRENCIES = [
 ] as const;
 
 /** Backend API URL for itinerary generation. */
-const PLAN_API_URL = "http://localhost:8080/api/plan";
+const PLAN_API_URL = apiUrl("/api/plan");
 
 export default function ConstraintForm(): JSX.Element {
   const router = useRouter();

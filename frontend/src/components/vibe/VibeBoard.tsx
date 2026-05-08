@@ -21,12 +21,13 @@ import { useRouter } from "next/navigation";
 import { Upload, X, ArrowRight, Loader2 } from "lucide-react";
 import type { Destination, VibeProfile } from "@/types";
 import { VibeProfileSchema } from "@/lib/schemas";
+import { apiUrl } from "@/lib/api";
 
 /** Maximum number of photos that can be uploaded. */
 const MAX_PHOTOS = 6;
 
 /** Backend API URL for vibe analysis. */
-const VIBE_API_URL = "http://localhost:8080/api/vibe";
+const VIBE_API_URL = apiUrl("/api/vibe");
 
 export default function VibeBoard(): JSX.Element {
   const [photos, setPhotos] = useState<File[]>([]);
