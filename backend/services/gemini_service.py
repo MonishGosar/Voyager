@@ -94,10 +94,12 @@ class PlaceSignal(typing.TypedDict):
     """A signal extracted from a mood board photo about trip intent.
 
     Attributes:
+        name: Specific place/venue name if identifiable (e.g. 'Eiffel Tower', 'Noma').
         type: Category of place (restaurant, landmark, neighborhood, hotel, activity).
         vibe: What this place signals about the traveler's intent.
     """
 
+    name: str
     type: str
     vibe: str
 
