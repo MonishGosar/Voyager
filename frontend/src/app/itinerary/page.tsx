@@ -1,11 +1,12 @@
 import ItineraryView from "@/components/itinerary/ItineraryView";
 import { Compass, ChevronRight } from "lucide-react";
+import { Suspense } from "react";
 
 export default function ItineraryPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Compass className="h-6 w-6 text-foreground" />
             <span className="font-display text-xl font-semibold tracking-tight">Voyager</span>
@@ -29,8 +30,9 @@ export default function ItineraryPage() {
           </div>
         </div>
       </header>
-      <ItineraryView />
+      <Suspense fallback={<div className="p-10 text-center text-muted-foreground">Loading itinerary…</div>}>
+        <ItineraryView />
+      </Suspense>
     </main>
   );
 }
-

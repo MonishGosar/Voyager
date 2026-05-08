@@ -14,22 +14,14 @@ export default function VibeBoard() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    
-    const newFiles = Array.from(e.target.files).slice(0, 6);
-    setPhotos(newFiles);
-    
-    const newPreviews = newFiles.map(f => URL.createObjectURL(f));
-    setPreviews(newPreviews);
-    
+  const analyzePhotos = async (filesToAnalyze: File[]) => {
+    if (!filesToAnalyze.length) return;
     setLoading(true);
-    
     try {
       const formData = new FormData();
-      newFiles.forEach(file => formData.append("files", file));
+      filesToAnalyze.forEach(file => formData.append("files", file));
       
-      const res = await fetch("http://localhost:8000/api/vibe", {
+      const res = await fetch("http://localhost:8080/api/vibe", {
         method: "POST",
         body: formData,
       });
@@ -38,6 +30,8 @@ export default function VibeBoard() {
         const data = await res.json();
         setTags(data.tags || []);
         setDestinations(data.suggested_destinations || []);
+        // Store full vibe profile for use in planning step
+        try { sessionStorage.setItem("voyager_vibe", JSON.stringify(data)); } catch {}
       }
     } catch (err) {
       console.error(err);
@@ -47,12 +41,24 @@ export default function VibeBoard() {
     }
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    
+    const newFiles = Array.from(e.target.files).slice(0, 6);
+    setPhotos(newFiles);
+    
+    const newPreviews = newFiles.map(f => URL.createObjectURL(f));
+    setPreviews(newPreviews);
+    
+    await analyzePhotos(newFiles);
+  };
+
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   const goToStep2 = () => {
-    router.push("/plan");
+    router.push(`/plan${selected ? `?destination=${encodeURIComponent(selected)}` : ""}`);
   };
 
   return (
@@ -93,12 +99,20 @@ export default function VibeBoard() {
              <div className="w-full space-y-4">
                <div className="flex justify-between items-center mb-2">
                  <p className="text-sm font-medium text-muted-foreground">Your Inspiration Board</p>
-                 <button 
-                   onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                   className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full transition-colors"
-                 >
-                   + Add more photos
-                 </button>
+                 <div className="flex gap-2">
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); analyzePhotos(photos); }}
+                     className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                   >
+                     Retry Analysis
+                   </button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                     className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full transition-colors"
+                   >
+                     + Add more photos
+                   </button>
+                 </div>
                </div>
                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
                  {previews.map((src, i) => (

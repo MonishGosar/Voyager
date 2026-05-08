@@ -1,5 +1,6 @@
 import ConstraintForm from "@/components/plan/ConstraintForm";
 import { Compass, ChevronRight } from "lucide-react";
+import { Suspense } from "react";
 
 export default function PlanPage() {
   return (
@@ -29,7 +30,9 @@ export default function PlanPage() {
           </div>
         </div>
       </header>
-      <ConstraintForm />
+      <Suspense fallback={<div className="p-10 text-center">Loading...</div>}>
+        <ConstraintForm />
+      </Suspense>
     </main>
   );
 }
