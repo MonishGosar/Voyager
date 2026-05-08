@@ -179,7 +179,7 @@ export default function ConstraintForm(): JSX.Element {
             <p className="text-sm text-muted-foreground">Gemini is crafting your perfect trip…</p>
           </div>
           <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 animate-[progress_3s_ease-in-out_infinite]" style={{ width: "60%" }} />
+            <div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 animate-[progress_2s_ease-in-out_infinite]" />
           </div>
           <div className="space-y-3 text-sm text-muted-foreground text-center">
             <p>Reading your travel vibe…</p>

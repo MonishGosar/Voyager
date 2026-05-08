@@ -1,7 +1,10 @@
 FROM python:3.11-slim
 
-# Install system deps
-RUN apt-get update && apt-get install -y nodejs npm
+# Install Node.js 20 LTS
+RUN apt-get update && apt-get install -y curl ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -24,4 +27,4 @@ COPY backend/ ./backend/
 ENV PYTHONPATH=/app/backend
 
 # Run uvicorn on port 8080
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8080}
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
