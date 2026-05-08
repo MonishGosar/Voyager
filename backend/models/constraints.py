@@ -44,4 +44,5 @@ class PlanningConstraints(BaseModel):
     must_include: List[str] = Field(default=[], description="Must-include venues")
     exclude: List[str] = Field(default=[], description="Venues to exclude")
     # Vibe profile forwarded from step 1
+    origin_city: str = Field(default="", description="City the traveler is departing from")
     vibe: Optional[Dict[str, Any]] = Field(default=None, description="Vibe profile from mood board")

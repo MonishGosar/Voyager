@@ -28,6 +28,7 @@ import { z } from "zod";
 
 /** Schema for PlaceSignal — a signal from a mood board photo. */
 export const PlaceSignalSchema = z.object({
+  name: z.string().optional().default(""),
   type: z.string(),
   vibe: z.string(),
 });
@@ -102,6 +103,8 @@ export const ItinerarySchema = z.object({
   days: z.array(DayPlanSchema),
   conflicts_resolved: z.array(z.string()),
   total_estimated_cost: z.number(),
+  estimated_travel_cost: z.number().optional().default(0),
+  travel_cost_note: z.string().optional().default(""),
   accessibility_notes: z.string(),
 });
 

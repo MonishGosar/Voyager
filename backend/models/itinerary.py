@@ -80,5 +80,7 @@ class Itinerary(BaseModel):
     """
     days: List[DayPlan] = Field(..., description="Day-by-day itinerary plans")
     conflicts_resolved: List[str] = Field(..., description="Conflict resolution log")
-    total_estimated_cost: float = Field(..., description="Total estimated cost")
+    total_estimated_cost: float = Field(..., description="Total estimated cost (activities only, excluding travel)")
+    estimated_travel_cost: float = Field(default=0.0, description="Estimated round-trip travel cost to destination")
+    travel_cost_note: str = Field(default="", description="Brief note on travel options and cost estimate")
     accessibility_notes: str = Field(..., description="Trip accessibility guidance")

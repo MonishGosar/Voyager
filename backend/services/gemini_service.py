@@ -197,13 +197,17 @@ class ItineraryOutput(typing.TypedDict):
     Attributes:
         days: List of day plans, each containing ordered stops.
         conflicts_resolved: Log of how vibe vs constraint conflicts were resolved.
-        total_estimated_cost: Total trip cost as a float.
+        total_estimated_cost: Activities/accommodation cost as a float (excludes travel to destination).
+        estimated_travel_cost: Estimated round-trip travel cost from origin to destination.
+        travel_cost_note: Brief note on travel options and cost basis.
         accessibility_notes: Accessibility guidance for the entire trip.
     """
 
     days: list[DayPlan]
     conflicts_resolved: list[str]
     total_estimated_cost: float
+    estimated_travel_cost: float
+    travel_cost_note: str
     accessibility_notes: str
 
 
@@ -569,6 +573,7 @@ def generate_itinerary(
     currency: str = constraints.get("currency", DEFAULT_CURRENCY)
     group_type: str = constraints.get("groupType", DEFAULT_GROUP_TYPE)
     group_size: int = constraints.get("groupSize", DEFAULT_GROUP_SIZE)
+    origin_city: str = constraints.get("origin_city", "")
 
     prompt: str = f"""{ITINERARY_SYSTEM_PROMPT}
 
@@ -594,12 +599,21 @@ CONSTRAINTS (hard limits):
 - Must include: {constraints.get('must_include', [])}
 - Exclude: {constraints.get('exclude', [])}
 
+TRAVEL COST ESTIMATION:
+- Origin city: {origin_city if origin_city else "unknown — skip travel cost estimate"}
+- If origin is known: estimate round-trip transport cost ({origin_city} → {destination}) for {group_size} people in {currency}.
+  Include the most realistic option (flight / train / bus) based on distance.
+  Set estimated_travel_cost to this amount and write a 1-sentence travel_cost_note (e.g. "Estimated round-trip flights Mumbai→Paris for 2: ~INR 120,000 (economy, 6 weeks out)").
+- If origin is unknown: set estimated_travel_cost to 0, travel_cost_note to "Add your origin city for a travel cost estimate."
+- The activity budget available for the itinerary = {budget} {currency} MINUS estimated_travel_cost.
+  Plan the itinerary within that remaining amount. If travel alone exceeds the budget, log it in conflicts_resolved.
+
 CURRENCY RULES — CRITICAL:
-- Express ALL costs (stop cost, totalCost, total_estimated_cost) in {currency}.
+- Express ALL costs (stop cost, totalCost, total_estimated_cost, estimated_travel_cost) in {currency}.
 - Do NOT use EUR, USD, or any other currency symbol — use {currency} only.
 - Convert local prices to {currency} using approximate real-world exchange rates.
-- total_estimated_cost MUST be <= {budget}.
-- If budget is very tight, pick free/low-cost options and log trade-offs in conflicts_resolved.
+- total_estimated_cost = activities + accommodation only (NOT including estimated_travel_cost).
+- If activity budget is very tight after travel, pick free/low-cost options and log trade-offs in conflicts_resolved.
 
 Generate exactly {num_days} days.
 """

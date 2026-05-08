@@ -342,12 +342,54 @@ export default function ItineraryView(): JSX.Element {
               <div className="text-right">
                 <p className="text-3xl font-mono font-bold">
                   {meta.currency === "EUR" ? "€" : meta.currency === "USD" ? "$" : meta.currency === "GBP" ? "£" : "₹"}
-                  {itinerary.total_estimated_cost.toLocaleString()}
+                  {(itinerary.total_estimated_cost + (itinerary.estimated_travel_cost ?? 0)).toLocaleString()}
                 </p>
                 <p className="text-xs text-blue-200 font-medium mt-1">estimated total</p>
+                {(itinerary.estimated_travel_cost ?? 0) > 0 && (
+                  <p className="text-xs text-blue-300 mt-0.5">
+                    incl. {meta.currency === "EUR" ? "€" : meta.currency === "USD" ? "$" : meta.currency === "GBP" ? "£" : "₹"}
+                    {(itinerary.estimated_travel_cost ?? 0).toLocaleString()} travel
+                  </p>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Travel cost breakdown */}
+          {((itinerary.estimated_travel_cost ?? 0) > 0 || itinerary.travel_cost_note) && (
+            <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-3">
+              <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                <Navigation className="h-4 w-4 text-blue-600" />
+                Budget breakdown
+              </h4>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Travel to destination</p>
+                  <p className="font-semibold text-base mt-1">
+                    {meta.currency === "EUR" ? "€" : meta.currency === "USD" ? "$" : meta.currency === "GBP" ? "£" : "₹"}
+                    {(itinerary.estimated_travel_cost ?? 0).toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Activities & stays</p>
+                  <p className="font-semibold text-base mt-1">
+                    {meta.currency === "EUR" ? "€" : meta.currency === "USD" ? "$" : meta.currency === "GBP" ? "£" : "₹"}
+                    {itinerary.total_estimated_cost.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                  <p className="text-xs text-muted-foreground">Total trip</p>
+                  <p className="font-semibold text-base text-blue-700 mt-1">
+                    {meta.currency === "EUR" ? "€" : meta.currency === "USD" ? "$" : meta.currency === "GBP" ? "£" : "₹"}
+                    {(itinerary.total_estimated_cost + (itinerary.estimated_travel_cost ?? 0)).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              {itinerary.travel_cost_note && (
+                <p className="text-xs text-muted-foreground">{itinerary.travel_cost_note}</p>
+              )}
+            </div>
+          )}
 
           {/* Conflict resolutions */}
           {itinerary.conflicts_resolved.length > 0 && (

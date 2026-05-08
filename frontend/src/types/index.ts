@@ -16,6 +16,8 @@
 
 /** A signal extracted from a mood board photo about trip intent. */
 export interface PlaceSignal {
+  /** Specific place or venue name if identifiable (e.g. 'Eiffel Tower'). */
+  name?: string;
   /** Category: restaurant, landmark, neighborhood, hotel, or activity. */
   type: string;
   /** What this place signals about the traveler's preferences. */
@@ -123,8 +125,12 @@ export interface Itinerary {
   days: DayPlan[];
   /** Log of how vibe vs constraint conflicts were resolved. */
   conflicts_resolved: string[];
-  /** Total trip cost as a float. */
+  /** Activities + accommodation cost (excludes travel to destination). */
   total_estimated_cost: number;
+  /** Estimated round-trip travel cost from origin to destination. */
+  estimated_travel_cost?: number;
+  /** Brief note on travel options and cost basis. */
+  travel_cost_note?: string;
   /** Accessibility guidance for the entire trip. */
   accessibility_notes: string;
 }
@@ -163,6 +169,8 @@ export interface PlanningConstraints {
   must_include: string[];
   /** Venues or categories to exclude. */
   exclude: string[];
+  /** City the traveler is departing from (used for travel cost estimation). */
+  origin_city: string;
   /** Optional VibeProfile from mood board analysis step. */
   vibe: VibeProfile | null;
 }

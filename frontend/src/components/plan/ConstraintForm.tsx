@@ -59,6 +59,7 @@ export default function ConstraintForm(): JSX.Element {
   const [destination, setDestination] = useState<string>(
     searchParams.get("destination") || "Lisbon"
   );
+  const [originCity, setOriginCity] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate]     = useState<string>("");
   const [groupType, setGroupType] = useState<string>("Couple");
@@ -139,6 +140,7 @@ export default function ConstraintForm(): JSX.Element {
       accessibility: { wheelchair, vegetarian },
       must_include: [],
       exclude: [],
+      origin_city: originCity.trim(),
       vibe,
     };
 
@@ -224,14 +226,27 @@ export default function ConstraintForm(): JSX.Element {
           <h3 className="font-semibold text-lg text-foreground">Where &amp; when</h3>
         </div>
         <div className="p-6 space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Destination</label>
-            <input
-              className="flex h-12 w-full rounded-xl border border-input bg-transparent px-4 py-2 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-              value={destination}
-              onChange={e => setDestination(e.target.value)}
-              placeholder="e.g. Lisbon, Portugal"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Destination</label>
+              <input
+                className="flex h-12 w-full rounded-xl border border-input bg-transparent px-4 py-2 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                value={destination}
+                onChange={e => setDestination(e.target.value)}
+                placeholder="e.g. Lisbon, Portugal"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Travelling from <span className="text-muted-foreground font-normal">(for travel cost estimate)</span>
+              </label>
+              <input
+                className="flex h-12 w-full rounded-xl border border-input bg-transparent px-4 py-2 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                value={originCity}
+                onChange={e => setOriginCity(e.target.value)}
+                placeholder="e.g. Mumbai, India"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
