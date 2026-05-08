@@ -587,11 +587,19 @@ CONSTRAINTS (hard limits):
 - Number of days: {num_days}
 - Start date: {start}
 - End date: {end}
-- Budget: {budget} {currency}
+- Budget: {budget} {currency} (total for entire trip, all {group_size} people)
+- Budget per person per day: ~{budget / max(group_size, 1) / max(num_days, 1):.0f} {currency}
 - Group: {group_type}, {group_size} people
 - Accessibility: {constraints.get('accessibility', {})}
 - Must include: {constraints.get('must_include', [])}
 - Exclude: {constraints.get('exclude', [])}
+
+CURRENCY RULES — CRITICAL:
+- Express ALL costs (stop cost, totalCost, total_estimated_cost) in {currency}.
+- Do NOT use EUR, USD, or any other currency symbol — use {currency} only.
+- Convert local prices to {currency} using approximate real-world exchange rates.
+- total_estimated_cost MUST be <= {budget}.
+- If budget is very tight, pick free/low-cost options and log trade-offs in conflicts_resolved.
 
 Generate exactly {num_days} days.
 """

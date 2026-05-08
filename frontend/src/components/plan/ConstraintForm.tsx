@@ -23,7 +23,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Sparkles, Calendar as CalendarIcon, MapPin, Users,
-  Coins, ArrowLeft, Accessibility, ChefHat
+  Coins, ArrowLeft, Accessibility, AlertTriangle
 } from "lucide-react";
 import type { VibeProfile, PlanningConstraints } from "@/types";
 import { ItinerarySchema } from "@/lib/schemas";
@@ -39,6 +39,14 @@ const CURRENCIES = [
   { label: "INR ₹", value: "INR" },
   { label: "GBP £", value: "GBP" },
 ] as const;
+
+/** Minimum viable daily budget per person in USD equivalent. */
+const MIN_DAILY_BUDGET_USD: Record<string, number> = {
+  USD: 20,
+  EUR: 18,
+  GBP: 16,
+  INR: 1500,
+};
 
 /** Backend API URL for itinerary generation. */
 const PLAN_API_URL = apiUrl("/api/plan");
@@ -72,6 +80,11 @@ export default function ConstraintForm(): JSX.Element {
     const diff = (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000;
     return diff > 0 ? diff + 1 : null;
   })();
+
+  const budgetNum = parseFloat(budget) || 0;
+  const dailyPerPerson = numDays && groupSize > 0 ? budgetNum / numDays / groupSize : null;
+  const minDaily = MIN_DAILY_BUDGET_USD[currency] ?? 20;
+  const budgetTooLow = dailyPerPerson !== null && dailyPerPerson < minDaily;
 
   // Auto-set group size based on type
   useEffect(() => {
@@ -327,6 +340,14 @@ export default function ConstraintForm(): JSX.Element {
                 />
               </div>
             </div>
+            {budgetTooLow && (
+              <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                <span>
+                  {currency} {dailyPerPerson?.toFixed(0)}/person/day is very low for travel. Expect mostly free activities and budget accommodation. Consider increasing your budget for a fuller experience.
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
