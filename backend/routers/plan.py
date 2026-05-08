@@ -1,7 +1,7 @@
 from fastapi import APIRouter
-from backend.models.constraints import PlanningConstraints
-from backend.models.itinerary import Itinerary
-from backend.services.gemini_service import generate_itinerary
+from models.constraints import PlanningConstraints
+from models.itinerary import Itinerary
+from services.gemini_service import generate_itinerary
 
 router = APIRouter()
 

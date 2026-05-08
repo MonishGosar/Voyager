@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic_settings import BaseSettings
 import os
-from backend.routers import vibe, plan
+from routers import vibe, plan
 
 class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""

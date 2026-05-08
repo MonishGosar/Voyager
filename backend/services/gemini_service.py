@@ -1,5 +1,5 @@
 import google.generativeai as genai
-from backend.config import settings
+from config import settings
 import json
 import typing_extensions as typing
 

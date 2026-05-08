@@ -1,7 +1,7 @@
 from fastapi import APIRouter, File, UploadFile
 from typing import List
-from backend.models.vibe import VibeProfile
-from backend.services.gemini_service import analyze_vibe
+from models.vibe import VibeProfile
+from services.gemini_service import analyze_vibe
 
 router = APIRouter()
 
