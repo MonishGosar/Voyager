@@ -8,14 +8,63 @@ TripMind Voyager is a full-stack Next.js 14 and FastAPI application that builds 
 
 ## 🏗️ Architecture
 
+### System Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         USER BROWSER                            │
+│                                                                 │
+│  ┌──────────┐    ┌──────────────┐    ┌───────────────────┐     │
+│  │ VibeBoard│───>│ConstraintForm│───>│  ItineraryView    │     │
+│  │ (Step 1) │    │  (Step 2)    │    │  (Step 3 + Map)   │     │
+│  └────┬─────┘    └──────┬───────┘    └───────────────────┘     │
+│       │                 │                                       │
+│       │  Zod validates  │  Zod validates                       │
+│       │  API responses  │  API responses                       │
+└───────┼─────────────────┼───────────────────────────────────────┘
+        │ POST /api/vibe  │ POST /api/plan
+        ▼                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      FASTAPI BACKEND                            │
+│                                                                 │
+│  ┌──────────────┐   ┌──────────────────────────┐               │
+│  │  main.py     │   │  gemini_service.py        │               │
+│  │  (CORS,      │──>│  (Vibe analysis +         │               │
+│  │   Routers,   │   │   Itinerary generation)   │               │
+│  │   Error      │   └──────────┬───────┬────────┘               │
+│  │   Handlers)  │              │       │                        │
+│  └──────────────┘              │       │                        │
+│                                ▼       ▼                        │
+│  ┌─────────────────┐  ┌──────────┐  ┌──────────────┐          │
+│  │ firestore_svc   │  │ cache.py │  │ analytics_svc│          │
+│  │ (Persistence)   │  │ (TTL)    │  │ (Events)     │          │
+│  └────────┬────────┘  └──────────┘  └──────┬───────┘          │
+└───────────┼─────────────────────────────────┼──────────────────┘
+            │                                 │
+            ▼                                 ▼
+┌────────────────────┐             ┌──────────────────┐
+│  Google Cloud      │             │  Google BigQuery  │
+│  Firestore         │             │  (Analytics)      │
+│  (Itinerary Store) │             │                   │
+└────────────────────┘             └──────────────────┘
+
+           ┌──────────────────────────────────────┐
+           │         GOOGLE GEMINI 2.5 FLASH      │
+           │    (Multimodal AI — vibe + itinerary) │
+           └──────────────────────────────────────┘
+```
+
+### Technology Stack
+
 | Layer | Technology | Purpose |
-|-------|-----------|---------|
+|-------|-----------|---------| 
 | **Frontend** | Next.js 14 (App Router) + Tailwind CSS + shadcn/ui | Responsive UI with 3-step wizard |
 | **Backend** | FastAPI (Python 3.11) | REST API with Pydantic validation |
 | **AI Engine** | Gemini 2.5 Flash (`google-genai` SDK) | Multimodal vibe analysis + itinerary generation |
 | **Persistence** | Google Cloud Firestore | Itinerary storage and retrieval |
 | **Analytics** | Google BigQuery | Anonymized trip planning event logging |
 | **Caching** | In-memory TTL cache | Reduces redundant API calls |
+| **Validation** | Zod (frontend) + Pydantic (backend) | Runtime API contract enforcement |
 | **Deployment** | Google Cloud Run | Single-container deployment under $5 budget |
 
 ---
@@ -33,6 +82,67 @@ TripMind Voyager is a full-stack Next.js 14 and FastAPI application that builds 
 
 ---
 
+## 🏃 Local Development
+
+### Prerequisites
+
+- **Python** 3.11+
+- **Node.js** 18+ and npm
+- A Google Gemini API key (from [AI Studio](https://aistudio.google.com/))
+
+### 1. Clone and configure environment
+
+```bash
+git clone https://github.com/MonishGosar/Voyager.git
+cd voyager
+cp .env.example .env
+# Edit .env with your API keys (see Environment Variables section below)
+```
+
+### 2. Start the backend
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate        # macOS/Linux
+# venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+```
+
+The API server starts at `http://localhost:8080`. Verify with:
+```bash
+curl http://localhost:8080/health
+# → {"status": "ok"}
+```
+
+### 3. Start the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Next.js dev server starts at `http://localhost:3000` (or `3001` if 3000 is in use).
+
+---
+
+## 🔐 Environment Variables
+
+Create a `.env` file in the project root (or copy from `.env.example`):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GEMINI_API_KEY` | Yes* | API key for Google Gemini (AI Studio mode). Get one from [AI Studio](https://aistudio.google.com/). Required unless `GOOGLE_CLOUD_PROJECT` is set. |
+| `GOOGLE_MAPS_API_KEY` | No | API key for Google Maps/Places APIs. Used for map rendering. |
+| `GOOGLE_CLOUD_PROJECT` | No | GCP project ID. When set, enables Firestore persistence, BigQuery analytics, and switches Gemini to Vertex AI mode. |
+| `GOOGLE_CLOUD_LOCATION` | No | GCP region for Vertex AI and BigQuery (default: `us-central1`). |
+
+\* Either `GEMINI_API_KEY` or `GOOGLE_CLOUD_PROJECT` must be set for AI features to work.
+
+---
+
 ## ⚡ Performance & Caching
 
 | Optimization | Before | After | Impact |
@@ -47,24 +157,46 @@ Cache implementation: `services/cache.py` — thread-safe `TTLCache` with config
 
 ## 🧪 Testing
 
-Run the full test suite from the backend directory:
+### Running all tests
 
 ```bash
 cd backend
 pytest
 ```
 
-| Suite | Tests | Coverage |
-|-------|-------|----------|
-| `test_constants.py` | 12 | Constants validation, prompt keywords |
-| `test_cache.py` | 12 | TTL cache: set/get, expiration, eviction |
-| `test_models.py` | 12 | Pydantic model validation and defaults |
-| `test_gemini_service.py` | 9 | Gemini service with mocked AI responses |
-| `test_google_services.py` | 7 | Firestore & BigQuery graceful fallback |
-| `test_api_integration.py` | 9 | API endpoint integration tests |
-| `test_workflow.py` | 4 | End-to-end workflow tests |
+Run with verbose output and coverage:
+```bash
+pytest -v --tb=short
+```
 
-See [`tests/README.md`](backend/tests/README.md) for detailed documentation.
+Run only fast tests (skip integration tests):
+```bash
+pytest -m "not integration"
+```
+
+### Test Suite Coverage
+
+| Suite | Tests | What It Covers |
+|-------|-------|----------------|
+| `test_constants.py` | 12 | Constants validation — model names, prompt keywords, valid value lists |
+| `test_cache.py` | 12 | TTL cache — set/get, expiration, thread safety, eviction |
+| `test_models.py` | 12 | Pydantic model validation — required fields, defaults, constraints |
+| `test_gemini_service.py` | 9 | Gemini service — mocked AI responses, error handling, fallbacks |
+| `test_google_services.py` | 7 | Firestore & BigQuery — graceful fallback when GCP unavailable |
+| `test_api_integration.py` | 9 | API endpoints — health check, vibe upload, plan generation |
+| `test_workflow.py` | 4 | End-to-end workflow — vibe → plan → itinerary pipeline |
+
+### Type Checking (Backend)
+
+```bash
+cd backend
+pip install pyright
+pyright .
+```
+
+Configuration is in `pyproject.toml` under `[tool.pyright]`.
+
+See [`tests/README.md`](backend/tests/README.md) for detailed test documentation.
 
 ---
 
@@ -91,54 +223,31 @@ The `Dockerfile` handles building the Next.js static export and serving it via F
 
 ---
 
-## 🏃 Running Locally
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Backend
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
-pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8080 --reload
-```
-
-### Environment Variables
-
-```env
-GEMINI_API_KEY=your_gemini_api_key
-GOOGLE_MAPS_API_KEY=your_maps_api_key
-GOOGLE_CLOUD_PROJECT=your_gcp_project_id  # Optional: enables Firestore + BigQuery
-GOOGLE_CLOUD_LOCATION=us-central1          # Optional: BigQuery/Vertex location
-```
-
----
-
 ## 📁 Project Structure
 
 ```
 voyager/
 ├── frontend/                    # Next.js 14 App Router
 │   └── src/
-│       ├── app/                 # Pages (/, /plan, /itinerary)
-│       └── components/          # React components
-│           ├── vibe/            # VibeBoard (photo upload + AI analysis)
-│           ├── plan/            # ConstraintForm (trip constraints)
-│           └── itinerary/       # ItineraryView (day-by-day plan + map)
+│       ├── app/                 # Pages (/, /vibe, /plan, /itinerary)
+│       ├── components/          # React components
+│       │   ├── vibe/            # VibeBoard (photo upload + AI analysis)
+│       │   ├── plan/            # ConstraintForm (trip constraints)
+│       │   ├── landing/         # LandingHero (landing page)
+│       │   └── itinerary/       # ItineraryView (day-by-day plan + map)
+│       ├── types/               # TypeScript interfaces (single source of truth)
+│       │   └── index.ts         # All shared types
+│       └── lib/                 # Utilities
+│           └── schemas.ts       # Zod schemas for runtime API validation
 ├── backend/                     # FastAPI Python backend
-│   ├── main.py                  # App entry point with CORS + routers
-│   ├── config.py                # Settings from env vars
+│   ├── main.py                  # App entry + CORS + global exception handlers
+│   ├── config.py                # Settings from env vars (pydantic-settings)
 │   ├── constants.py             # All constants, prompts, config values
+│   ├── pyproject.toml           # Pytest + Pyright config
 │   ├── models/                  # Pydantic request/response schemas
-│   │   ├── vibe.py              # VibeProfile model
-│   │   ├── constraints.py       # PlanningConstraints model
-│   │   └── itinerary.py         # Itinerary/DayPlan/Stop models
+│   │   ├── vibe.py              # VibeProfile, PlaceSignal, Destination
+│   │   ├── constraints.py       # PlanningConstraints
+│   │   └── itinerary.py         # Itinerary, DayPlan, Stop, TravelToNext
 │   ├── routers/                 # API endpoint routers
 │   │   ├── vibe.py              # POST /api/vibe
 │   │   └── plan.py              # POST /api/plan
@@ -147,7 +256,7 @@ voyager/
 │   │   ├── firestore_service.py # Firestore persistence
 │   │   ├── analytics_service.py # BigQuery event logging
 │   │   └── cache.py             # In-memory TTL cache
-│   └── tests/                   # Comprehensive test suite
+│   └── tests/                   # Comprehensive test suite (65+ tests)
 │       ├── conftest.py          # Shared fixtures + mock data
 │       ├── test_gemini_service.py
 │       ├── test_cache.py
@@ -157,6 +266,8 @@ voyager/
 │       ├── test_api_integration.py
 │       ├── test_workflow.py
 │       └── README.md            # Test documentation
+├── docs/
+│   └── API.md                   # API contract documentation (source of truth)
 ├── Dockerfile                   # Cloud Run deployment
 ├── .env.example                 # Environment variable template
 └── README.md                    # This file
