@@ -14,7 +14,12 @@ import time
 import threading
 from typing import Any, Optional
 
-from constants import PLACES_CACHE_TTL_SECONDS, PLACES_CACHE_MAX_SIZE
+from constants import (
+    PLACES_CACHE_TTL_SECONDS,
+    PLACES_CACHE_MAX_SIZE,
+    GEOCODE_CACHE_TTL_SECONDS,
+    GEOCODE_CACHE_MAX_SIZE,
+)
 
 
 class TTLCache:
@@ -99,5 +104,5 @@ class TTLCache:
 places_cache = TTLCache(ttl_seconds=PLACES_CACHE_TTL_SECONDS, max_size=PLACES_CACHE_MAX_SIZE)
 """Global cache for Google Places API responses."""
 
-geocode_cache = TTLCache(ttl_seconds=86400, max_size=1024)
+geocode_cache = TTLCache(ttl_seconds=GEOCODE_CACHE_TTL_SECONDS, max_size=GEOCODE_CACHE_MAX_SIZE)
 """Global cache for geocoding results (24h TTL)."""

@@ -1,3 +1,10 @@
+/**
+ * Root layout — applies global fonts, metadata, and CSS to all pages.
+ *
+ * Configures DM Sans (body) and Lora (display) fonts via next/font/google
+ * and sets the base HTML structure for the Voyager application.
+ */
+
 import type { Metadata } from "next";
 import { DM_Sans, Lora, Inter, Fraunces } from 'next/font/google';
 import "./globals.css";

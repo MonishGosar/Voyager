@@ -1,8 +1,21 @@
+/**
+ * Plan page — Step 2 of the Voyager wizard.
+ *
+ * Renders the sticky navigation header with step indicators and
+ * the ConstraintForm component for trip planning input.
+ * Wrapped in Suspense because ConstraintForm uses useSearchParams.
+ */
+
 import ConstraintForm from "@/components/plan/ConstraintForm";
 import { Compass, ChevronRight } from "lucide-react";
 import { Suspense } from "react";
 
-export default function PlanPage() {
+/**
+ * PlanPage component — wraps ConstraintForm with navigation chrome.
+ *
+ * @returns The trip planning page with header and ConstraintForm.
+ */
+export default function PlanPage(): JSX.Element {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">

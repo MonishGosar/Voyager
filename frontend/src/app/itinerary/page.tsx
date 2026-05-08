@@ -1,8 +1,21 @@
+/**
+ * Itinerary page — Step 3 of the Voyager wizard.
+ *
+ * Renders the sticky navigation header with step indicators and
+ * the ItineraryView component for the generated itinerary display.
+ * Wrapped in Suspense because ItineraryView uses useSearchParams.
+ */
+
 import ItineraryView from "@/components/itinerary/ItineraryView";
 import { Compass, ChevronRight } from "lucide-react";
 import { Suspense } from "react";
 
-export default function ItineraryPage() {
+/**
+ * ItineraryPage component — wraps ItineraryView with navigation chrome.
+ *
+ * @returns The itinerary display page with header and ItineraryView.
+ */
+export default function ItineraryPage(): JSX.Element {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">

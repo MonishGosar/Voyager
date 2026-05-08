@@ -1,66 +1,90 @@
 "use client";
 
+/**
+ * ItineraryView — Day-by-day travel itinerary display with interactive map.
+ *
+ * This is Step 3 of the Voyager wizard. Displays the AI-generated itinerary
+ * with day tabs, stop cards (with accessibility badges, cost data, rainy day
+ * alternatives), an interactive Leaflet map with geocoded markers, and
+ * export options (Google Calendar, shareable link).
+ *
+ * Data sources:
+ * - sessionStorage("voyager_itinerary") — set by ConstraintForm
+ * - sessionStorage("voyager_trip_meta") — set by ConstraintForm
+ * - URL query param `data` — for shared itinerary links
+ *
+ * @example
+ * ```tsx
+ * <Suspense fallback={<div>Loading...</div>}>
+ *   <ItineraryView />
+ * </Suspense>
+ * ```
+ */
+
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays, Link2, RefreshCw, Navigation,
   Map, ArrowLeft, CloudRain, Info, CheckCircle2
 } from "lucide-react";
-
-// ─────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────
-interface TravelToNext { duration: string; mode: string; }
-interface Stop {
-  time: string; name: string; description: string;
-  neighborhood?: string; wheelchair: boolean; vegetarian: boolean;
-  stepFree: boolean; cost: string; priceLevel: number;
-  streetViewUrl: string; travelToNext?: TravelToNext | null;
-  rainy_day_fallback?: string;
-}
-interface DayPlan { stops: Stop[]; totalCost: string; }
-interface Itinerary {
-  days: DayPlan[];
-  conflicts_resolved: string[];
-  total_estimated_cost: number;
-  accessibility_notes: string;
-}
-interface TripMeta {
-  destination: string; startDate: string; endDate: string;
-  numDays: number; groupType: string; groupSize: number;
-  currency: string; budget: string;
-}
+import type { TravelToNext, Stop, DayPlan, Itinerary, TripMeta } from "@/types";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
-function formatDate(dateStr: string) {
+
+/**
+ * Format an ISO date string into a human-readable format.
+ *
+ * @param dateStr - ISO date string (e.g. '2025-06-15').
+ * @returns Formatted date string (e.g. 'Jun 15, 2025'), or the original string on error.
+ */
+function formatDate(dateStr: string): string {
   if (!dateStr) return "";
   try {
     return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   } catch { return dateStr; }
 }
 
-function toGoogleCalendarDate(dateStr: string) {
-  // Google Calendar format: YYYYMMDD
+/**
+ * Convert a YYYY-MM-DD date string to Google Calendar format (YYYYMMDD).
+ *
+ * @param dateStr - ISO date string (e.g. '2025-06-15').
+ * @returns Google Calendar date string (e.g. '20250615').
+ */
+function toGoogleCalendarDate(dateStr: string): string {
   return dateStr.replace(/-/g, "");
 }
 
-function buildGoogleCalendarUrl(meta: TripMeta, itinerary: Itinerary) {
+/**
+ * Build a Google Calendar event creation URL from trip metadata and itinerary.
+ *
+ * @param meta - Trip metadata (destination, dates, group info).
+ * @param itinerary - The full itinerary with days and stops.
+ * @returns A Google Calendar deep link URL.
+ */
+function buildGoogleCalendarUrl(meta: TripMeta, itinerary: Itinerary): string {
   const start = toGoogleCalendarDate(meta.startDate);
   const end   = toGoogleCalendarDate(meta.endDate);
   const title = encodeURIComponent(`✈️ Trip to ${meta.destination}`);
   const details = encodeURIComponent(
     `${meta.numDays} days · ${meta.groupType} · Budget: ${meta.currency} ${meta.budget}\n\n` +
-    itinerary.days.map((d, i) =>
-      `Day ${i + 1}:\n` + d.stops.map(s => `  ${s.time} – ${s.name}`).join("\n")
+    itinerary.days.map((d: DayPlan, i: number) =>
+      `Day ${i + 1}:\n` + d.stops.map((s: Stop) => `  ${s.time} – ${s.name}`).join("\n")
     ).join("\n\n")
   );
   const location = encodeURIComponent(meta.destination);
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;
 }
 
-function buildShareableUrl(itinerary: Itinerary, meta: TripMeta) {
+/**
+ * Build a shareable URL containing the full itinerary and metadata as base64.
+ *
+ * @param itinerary - The full itinerary object.
+ * @param meta - Trip metadata.
+ * @returns A shareable URL string.
+ */
+function buildShareableUrl(itinerary: Itinerary, meta: TripMeta): string {
   try {
     const payload = btoa(encodeURIComponent(JSON.stringify({ itinerary, meta })));
     return `${window.location.origin}/itinerary?data=${payload}`;
@@ -70,23 +94,41 @@ function buildShareableUrl(itinerary: Itinerary, meta: TripMeta) {
 // ─────────────────────────────────────────────────────────────
 // Leaflet Map — geocodes each stop, numbered markers + polyline
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * Geocode a place name using Nominatim OpenStreetMap API.
+ *
+ * @param query - The place name to geocode (e.g. 'Pastéis de Belém, Lisbon').
+ * @returns A [lat, lon] tuple, or null if geocoding fails.
+ */
 async function geocodePlace(query: string): Promise<[number, number] | null> {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
     );
-    const data = await res.json();
+    const data: Array<{ lat: string; lon: string }> = await res.json();
     if (!data[0]) return null;
     return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
   } catch { return null; }
 }
 
-function ItineraryMap({ destination, stops, dayIndex }: { destination: string; stops: Stop[]; dayIndex: number }) {
+/**
+ * ItineraryMap — Interactive Leaflet map showing geocoded stop markers.
+ *
+ * Renders an OpenStreetMap tile layer with numbered markers for each stop
+ * in the current day's plan, connected by a dashed polyline route.
+ *
+ * @param props.destination - The destination city for geocoding context.
+ * @param props.stops - Array of stops to geocode and display.
+ * @param props.dayIndex - Current day index (triggers re-render on change).
+ */
+function ItineraryMap({ destination, stops, dayIndex }: { destination: string; stops: Stop[]; dayIndex: number }): JSX.Element {
   const mapRef = useRef<HTMLDivElement>(null);
+  /* eslint-disable @typescript-eslint/no-explicit-any -- Leaflet is loaded from CDN, no TS types available */
   const mapInstanceRef = useRef<any>(null);
-  const leafletLoadedRef = useRef(false);
+  const leafletLoadedRef = useRef<boolean>(false);
 
-  const initMap = async () => {
+  const initMap = async (): Promise<void> => {
     const L = (window as any).L;
     if (!L || !mapRef.current) return;
 
@@ -133,7 +175,7 @@ function ItineraryMap({ destination, stops, dayIndex }: { destination: string; s
     }
 
     // Add numbered markers for each stop
-    coords.forEach((coord, i) => {
+    coords.forEach((coord: [number, number], i: number) => {
       const icon = L.divIcon({
         className: "",
         html: `<div style="background:#2563eb;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);flex-shrink:0">${i + 1}</div>`,
@@ -147,8 +189,9 @@ function ItineraryMap({ destination, stops, dayIndex }: { destination: string; s
     // Fit map to all markers
     map.fitBounds(L.latLngBounds(coords), { padding: [32, 32], maxZoom: 15 });
   };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
-  const loadLeafletAndInit = () => {
+  const loadLeafletAndInit = (): void => {
     if ((window as any).L) { initMap(); return; }
     if (leafletLoadedRef.current) return;
     leafletLoadedRef.current = true;
@@ -194,11 +237,12 @@ function ItineraryMap({ destination, stops, dayIndex }: { destination: string; s
 // ─────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────
-export default function ItineraryView() {
-  const [activeDay, setActiveDay] = useState(0);
+
+export default function ItineraryView(): JSX.Element {
+  const [activeDay, setActiveDay] = useState<number>(0);
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [meta, setMeta] = useState<TripMeta | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<boolean>(false);
   const [expandedFallback, setExpandedFallback] = useState<number | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -208,7 +252,7 @@ export default function ItineraryView() {
     const sharedData = searchParams.get("data");
     if (sharedData) {
       try {
-        const decoded = JSON.parse(decodeURIComponent(atob(sharedData)));
+        const decoded = JSON.parse(decodeURIComponent(atob(sharedData))) as { itinerary?: Itinerary; meta?: TripMeta };
         if (decoded.itinerary) setItinerary(decoded.itinerary);
         if (decoded.meta) setMeta(decoded.meta);
         return;
@@ -218,16 +262,24 @@ export default function ItineraryView() {
     try {
       const raw = sessionStorage.getItem("voyager_itinerary");
       const rawMeta = sessionStorage.getItem("voyager_trip_meta");
-      if (raw) setItinerary(JSON.parse(raw));
-      if (rawMeta) setMeta(JSON.parse(rawMeta));
+      if (raw) setItinerary(JSON.parse(raw) as Itinerary);
+      if (rawMeta) setMeta(JSON.parse(rawMeta) as TripMeta);
     } catch { /* ignore */ }
   }, [searchParams]);
 
-  const handleAddToCalendar = () => {
+  /**
+   * Open Google Calendar with a pre-filled event for this trip.
+   */
+  const handleAddToCalendar = (): void => {
+    if (!meta || !itinerary) return;
     window.open(buildGoogleCalendarUrl(meta, itinerary), "_blank");
   };
 
-  const handleCopyLink = async () => {
+  /**
+   * Copy the shareable itinerary link to clipboard.
+   */
+  const handleCopyLink = async (): Promise<void> => {
+    if (!itinerary || !meta) return;
     const url = buildShareableUrl(itinerary, meta);
     try {
       await navigator.clipboard.writeText(url);
@@ -259,7 +311,7 @@ export default function ItineraryView() {
     );
   }
 
-  const currentDay = itinerary.days[activeDay];
+  const currentDay: DayPlan = itinerary.days[activeDay];
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 animate-fade-up">
@@ -305,7 +357,7 @@ export default function ItineraryView() {
                 How we resolved your constraints
               </h4>
               <ul className="space-y-1.5 text-sm text-amber-800">
-                {itinerary.conflicts_resolved.map((c, i) => (
+                {itinerary.conflicts_resolved.map((c: string, i: number) => (
                   <li key={i} className="flex gap-2"><span className="text-amber-500 shrink-0">•</span>{c}</li>
                 ))}
               </ul>
@@ -314,7 +366,7 @@ export default function ItineraryView() {
 
           {/* Day tabs */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {itinerary.days.map((_, i) => (
+            {itinerary.days.map((_: DayPlan, i: number) => (
               <button
                 key={i}
                 onClick={() => { setActiveDay(i); setExpandedFallback(null); }}
@@ -331,7 +383,7 @@ export default function ItineraryView() {
 
           {/* Stops */}
           <div className="space-y-4 mt-2">
-            {itinerary.days[activeDay]?.stops.map((stop, j) => (
+            {itinerary.days[activeDay]?.stops.map((stop: Stop, j: number) => (
               <div key={j} className="bg-card text-card-foreground border rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex gap-4 flex-1">
@@ -483,7 +535,13 @@ export default function ItineraryView() {
   );
 }
 
-function SparklesIcon(props: any) {
+/**
+ * SparklesIcon — Custom sparkles SVG icon for the constraint resolution section.
+ *
+ * @param props - Standard SVG element props.
+ * @returns An SVG sparkles icon element.
+ */
+function SparklesIcon(props: React.SVGProps<SVGSVGElement>): JSX.Element {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />

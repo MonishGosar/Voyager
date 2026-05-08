@@ -1,50 +1,94 @@
 "use client";
 
+/**
+ * VibeBoard — Mood board photo upload and AI analysis component.
+ *
+ * This is Step 1 of the Voyager wizard. Users upload 1-6 travel
+ * inspiration photos, which are analyzed by Gemini to extract a
+ * structured VibeProfile (tags, mood, destinations, style, pace).
+ *
+ * The extracted vibe profile is persisted in sessionStorage for use
+ * in the planning step (ConstraintForm).
+ *
+ * @example
+ * ```tsx
+ * <VibeBoard />
+ * ```
+ */
+
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, ArrowRight, Loader2 } from "lucide-react";
+import type { Destination, VibeProfile } from "@/types";
+import { VibeProfileSchema } from "@/lib/schemas";
 
-export default function VibeBoard() {
+/** Maximum number of photos that can be uploaded. */
+const MAX_PHOTOS = 6;
+
+/** Backend API URL for vibe analysis. */
+const VIBE_API_URL = "http://localhost:8080/api/vibe";
+
+export default function VibeBoard(): JSX.Element {
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [destinations, setDestinations] = useState<{name: string, country: string}[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selected, setSelected] = useState<string>("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const analyzePhotos = async (filesToAnalyze: File[]) => {
+  /**
+   * Send photos to the backend for AI vibe analysis.
+   *
+   * @param filesToAnalyze - Array of File objects to upload.
+   */
+  const analyzePhotos = async (filesToAnalyze: File[]): Promise<void> => {
     if (!filesToAnalyze.length) return;
     setLoading(true);
     try {
       const formData = new FormData();
       filesToAnalyze.forEach(file => formData.append("files", file));
       
-      const res = await fetch("http://localhost:8080/api/vibe", {
+      const res = await fetch(VIBE_API_URL, {
         method: "POST",
         body: formData,
       });
       
       if (res.ok) {
-        const data = await res.json();
-        setTags(data.tags || []);
-        setDestinations(data.suggested_destinations || []);
-        // Store full vibe profile for use in planning step
-        try { sessionStorage.setItem("voyager_vibe", JSON.stringify(data)); } catch {}
+        const raw: unknown = await res.json();
+        const parsed = VibeProfileSchema.safeParse(raw);
+
+        if (parsed.success) {
+          const data: VibeProfile = parsed.data;
+          setTags(data.tags || []);
+          setDestinations(data.suggested_destinations || []);
+          try { sessionStorage.setItem("voyager_vibe", JSON.stringify(data)); } catch { /* sessionStorage unavailable */ }
+        } else {
+          console.error("API contract mismatch:", parsed.error);
+          setTags(["Error analyzing vibe"]);
+        }
+      } else {
+        console.error("Vibe API error:", res.status, res.statusText);
+        setTags(["Error analyzing vibe"]);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      console.error("Network error during vibe analysis:", err);
       setTags(["Error analyzing vibe"]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Handle file input change — store files, generate previews, trigger analysis.
+   *
+   * @param e - The file input change event.
+   */
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     if (!e.target.files?.length) return;
     
-    const newFiles = Array.from(e.target.files).slice(0, 6);
+    const newFiles = Array.from(e.target.files).slice(0, MAX_PHOTOS);
     setPhotos(newFiles);
     
     const newPreviews = newFiles.map(f => URL.createObjectURL(f));
@@ -53,11 +97,19 @@ export default function VibeBoard() {
     await analyzePhotos(newFiles);
   };
 
-  const removeTag = (tagToRemove: string) => {
+  /**
+   * Remove a tag from the detected aesthetics list.
+   *
+   * @param tagToRemove - The tag string to remove.
+   */
+  const removeTag = (tagToRemove: string): void => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const goToStep2 = () => {
+  /**
+   * Navigate to Step 2 (planning) with the selected destination as a query param.
+   */
+  const goToStep2 = (): void => {
     router.push(`/plan${selected ? `?destination=${encodeURIComponent(selected)}` : ""}`);
   };
 
@@ -130,7 +182,7 @@ export default function VibeBoard() {
               </div>
               <div>
                 <p className="font-semibold text-foreground text-lg">Click to upload photos</p>
-                <p className="text-sm text-muted-foreground mt-1">Accepts JPG, PNG, WEBP (up to 6 images)</p>
+                <p className="text-sm text-muted-foreground mt-1">Accepts JPG, PNG, WEBP (up to {MAX_PHOTOS} images)</p>
               </div>
             </>
           )}

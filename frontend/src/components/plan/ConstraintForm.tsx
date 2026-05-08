@@ -1,41 +1,72 @@
 "use client";
 
+/**
+ * ConstraintForm — Trip planning constraints input form.
+ *
+ * This is Step 2 of the Voyager wizard. Users input their hard constraints:
+ * destination, dates, budget, group configuration, and accessibility needs.
+ * The component retrieves the VibeProfile from sessionStorage (set by VibeBoard)
+ * and combines it with constraints to request an itinerary from the backend.
+ *
+ * On successful itinerary generation, the result is stored in sessionStorage
+ * and the user is navigated to the Itinerary View (Step 3).
+ *
+ * @example
+ * ```tsx
+ * <Suspense fallback={<div>Loading...</div>}>
+ *   <ConstraintForm />
+ * </Suspense>
+ * ```
+ */
+
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Sparkles, Calendar as CalendarIcon, MapPin, Users,
   Coins, ArrowLeft, Accessibility, ChefHat
 } from "lucide-react";
+import type { VibeProfile, PlanningConstraints } from "@/types";
+import { ItinerarySchema } from "@/lib/schemas";
 
+/** Valid group type options. */
 const GROUP_TYPES = ["Solo", "Couple", "Friends", "Family"] as const;
+
+/** Supported currencies with display labels. */
 const CURRENCIES = [
   { label: "USD $", value: "USD" },
   { label: "EUR €", value: "EUR" },
   { label: "INR ₹", value: "INR" },
   { label: "GBP £", value: "GBP" },
-];
+] as const;
 
-export default function ConstraintForm() {
+/** Backend API URL for itinerary generation. */
+const PLAN_API_URL = "http://localhost:8080/api/plan";
+
+export default function ConstraintForm(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // ── State ──────────────────────────────────────────────────────
-  const [destination, setDestination] = useState(
+  const [destination, setDestination] = useState<string>(
     searchParams.get("destination") || "Lisbon"
   );
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate]     = useState("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate]     = useState<string>("");
   const [groupType, setGroupType] = useState<string>("Couple");
-  const [groupSize, setGroupSize] = useState(2);
-  const [currency, setCurrency]   = useState("EUR");
-  const [budget, setBudget]       = useState("2000");
-  const [wheelchair, setWheelchair]   = useState(false);
-  const [vegetarian, setVegetarian]   = useState(false);
-  const [loading, setLoading]         = useState(false);
+  const [groupSize, setGroupSize] = useState<number>(2);
+  const [currency, setCurrency]   = useState<string>("EUR");
+  const [budget, setBudget]       = useState<string>("2000");
+  const [wheelchair, setWheelchair]   = useState<boolean>(false);
+  const [vegetarian, setVegetarian]   = useState<boolean>(false);
+  const [loading, setLoading]         = useState<boolean>(false);
   const [error, setError]             = useState<string | null>(null);
 
-  // Derived number of days
-  const numDays = (() => {
+  /**
+   * Calculate the number of trip days from start and end dates.
+   *
+   * @returns The number of days (inclusive), or null if dates are invalid.
+   */
+  const numDays: number | null = (() => {
     if (!startDate || !endDate) return null;
     const diff = (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000;
     return diff > 0 ? diff + 1 : null;
@@ -47,15 +78,28 @@ export default function ConstraintForm() {
     else if (groupType === "Couple") setGroupSize(2);
   }, [groupType]);
 
-  // Retrieve vibe from sessionStorage (set by VibeBoard)
-  const getVibe = () => {
+  /**
+   * Retrieve the vibe profile from sessionStorage.
+   *
+   * @returns The parsed VibeProfile object, or null if not available.
+   */
+  const getVibe = (): VibeProfile | null => {
     try {
       const raw = sessionStorage.getItem("voyager_vibe");
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+      return raw ? (JSON.parse(raw) as VibeProfile) : null;
+    } catch {
+      return null;
+    }
   };
 
-  const buildItinerary = async () => {
+  /**
+   * Submit constraints to the backend and generate an itinerary.
+   *
+   * Validates dates, builds the request payload, calls the /api/plan
+   * endpoint, validates the response with Zod, stores it in sessionStorage,
+   * and navigates to the itinerary page.
+   */
+  const buildItinerary = async (): Promise<void> => {
     if (!startDate || !endDate) {
       setError("Please select start and end dates.");
       return;
@@ -69,7 +113,7 @@ export default function ConstraintForm() {
 
     const vibe = getVibe();
 
-    const payload = {
+    const payload: Omit<PlanningConstraints, 'vibe'> & { vibe: VibeProfile | null } = {
       destination,
       startDate,
       endDate,
@@ -85,14 +129,23 @@ export default function ConstraintForm() {
     };
 
     try {
-      const res = await fetch("http://localhost:8080/api/plan", {
+      const res = await fetch(PLAN_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const itinerary = await res.json();
+      const raw: unknown = await res.json();
+
+      // Validate API response shape at runtime
+      const parsed = ItinerarySchema.safeParse(raw);
+      if (!parsed.success) {
+        console.error("API contract mismatch:", parsed.error);
+        throw new Error("Received malformed itinerary data from server.");
+      }
+
+      const itinerary = parsed.data;
 
       // Store itinerary + trip meta in session for the itinerary page
       sessionStorage.setItem("voyager_itinerary", JSON.stringify(itinerary));
@@ -108,9 +161,10 @@ export default function ConstraintForm() {
       }));
 
       router.push("/itinerary");
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to generate itinerary. Please try again.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to generate itinerary. Please try again.";
+      console.error("buildItinerary error:", err);
+      setError(message);
       setLoading(false);
     }
   };

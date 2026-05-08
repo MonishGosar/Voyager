@@ -2,7 +2,11 @@
 Constants and configuration values for the Voyager backend.
 
 Centralizes all hardcoded strings, model names, API endpoints, prompt templates,
-and cache configuration to improve maintainability and prevent magic strings.
+cache configuration, and default values to improve maintainability and prevent
+magic strings scattered across the codebase.
+
+Usage:
+    from constants import GEMINI_MODEL, MAX_UPLOAD_IMAGES, VIBE_ANALYSIS_SYSTEM_PROMPT
 """
 
 # ──────────────────────────────────────────────
@@ -31,9 +35,27 @@ API_PREFIX: str = "/api"
 NOMINATIM_SEARCH_URL: str = "https://nominatim.openstreetmap.org/search"
 """OpenStreetMap Nominatim geocoding endpoint."""
 
+NOMINATIM_USER_AGENT: str = "VoyagerTravelApp/1.0"
+"""User-Agent header for Nominatim requests (required by their ToS)."""
+
+GOOGLE_CALENDAR_BASE_URL: str = "https://calendar.google.com/calendar/render"
+"""Google Calendar event creation deep link base URL."""
+
+LEAFLET_CDN_CSS: str = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+"""Leaflet CSS CDN URL for interactive maps."""
+
+LEAFLET_CDN_JS: str = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+"""Leaflet JS CDN URL for interactive maps."""
+
+OSM_TILE_URL: str = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+"""OpenStreetMap tile server URL template."""
+
 # ──────────────────────────────────────────────
 # Cache Configuration
 # ──────────────────────────────────────────────
+
+CACHE_TTL_SECONDS: int = 3600
+"""Default time-to-live for API response caches (1 hour)."""
 
 PLACES_CACHE_TTL_SECONDS: int = 3600
 """Time-to-live for Places API response cache (1 hour)."""
@@ -43,6 +65,9 @@ PLACES_CACHE_MAX_SIZE: int = 512
 
 GEOCODE_CACHE_TTL_SECONDS: int = 86400
 """Time-to-live for geocoding cache (24 hours)."""
+
+GEOCODE_CACHE_MAX_SIZE: int = 1024
+"""Maximum entries in the geocoding cache."""
 
 # ──────────────────────────────────────────────
 # Firestore Configuration
@@ -54,6 +79,9 @@ FIRESTORE_ITINERARIES_COLLECTION: str = "itineraries"
 FIRESTORE_EVENTS_COLLECTION: str = "analytics_events"
 """Firestore collection name for analytics events."""
 
+FIRESTORE_DOCUMENT_VERSION: str = "1.0"
+"""Version string stamped on Firestore documents for future migrations."""
+
 # ──────────────────────────────────────────────
 # BigQuery Configuration
 # ──────────────────────────────────────────────
@@ -63,6 +91,9 @@ BIGQUERY_DATASET: str = "voyager_analytics"
 
 BIGQUERY_EVENTS_TABLE: str = "trip_events"
 """BigQuery table for anonymized trip planning events."""
+
+BIGQUERY_TABLE: str = "voyager_analytics.trip_events"
+"""Fully qualified BigQuery table reference (dataset.table)."""
 
 # ──────────────────────────────────────────────
 # Default Values
@@ -105,8 +136,17 @@ DEFAULT_TIME_PREFERENCE: str = "all-day"
 MAX_UPLOAD_IMAGES: int = 6
 """Maximum number of mood board images per upload."""
 
+MAX_IMAGE_SIZE_MB: int = 5
+"""Maximum file size per uploaded image in megabytes."""
+
+MAX_IMAGE_SIZE_BYTES: int = MAX_IMAGE_SIZE_MB * 1024 * 1024
+"""Maximum file size per uploaded image in bytes (derived from MAX_IMAGE_SIZE_MB)."""
+
 SUPPORTED_IMAGE_MIME_TYPE: str = "image/jpeg"
 """Default MIME type for uploaded images."""
+
+SUPPORTED_IMAGE_FORMATS: list[str] = ["image/jpeg", "image/png", "image/webp"]
+"""List of accepted MIME types for uploaded images."""
 
 # ──────────────────────────────────────────────
 # Travel Styles (valid enum values)
@@ -119,12 +159,48 @@ VALID_TRAVEL_STYLES: list[str] = [
     "luxury leisure",
     "adventure seeker",
 ]
+"""Valid travel style archetype values."""
 
 VALID_PACES: list[str] = ["relaxed", "balanced", "packed"]
+"""Valid pace values for itinerary generation."""
 
 VALID_MEAL_STYLES: list[str] = ["fine dining", "street food", "local trattorias", "mixed"]
+"""Valid meal style preference values."""
 
 VALID_TIME_PREFERENCES: list[str] = ["morning explorer", "evening person", "all-day"]
+"""Valid time-of-day preference values."""
+
+# ──────────────────────────────────────────────
+# Currency Configuration
+# ──────────────────────────────────────────────
+
+CURRENCY_SYMBOLS: dict[str, str] = {
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "INR": "₹",
+}
+"""Map of currency codes to their display symbols."""
+
+SUPPORTED_CURRENCIES: list[str] = ["USD", "EUR", "GBP", "INR"]
+"""List of supported currency codes."""
+
+# ──────────────────────────────────────────────
+# Group Configuration
+# ──────────────────────────────────────────────
+
+VALID_GROUP_TYPES: list[str] = ["solo", "couple", "friends", "family"]
+"""Valid group type values."""
+
+MAX_GROUP_SIZE: int = 20
+"""Maximum number of travelers per group."""
+
+# ──────────────────────────────────────────────
+# Date Format
+# ──────────────────────────────────────────────
+
+DATE_FORMAT: str = "%Y-%m-%d"
+"""Expected date format for trip start/end dates."""
 
 # ──────────────────────────────────────────────
 # Prompt Templates
@@ -180,6 +256,7 @@ WHAT TO EXTRACT:
 
 Return ONLY valid JSON. No explanation.
 """
+"""System prompt for Gemini mood board vibe analysis."""
 
 ITINERARY_SYSTEM_PROMPT: str = """You are building a day-by-day travel itinerary. You have two inputs:
 a VIBE PROFILE (what the person actually wants) and CONSTRAINTS (hard limits).
@@ -228,3 +305,4 @@ wheelchair (bool), vegetarian (bool), stepFree (bool), cost (string), priceLevel
 streetViewUrl (empty string ok), travelToNext (object with duration and mode strings),
 rainy_day_fallback (string — an alternative if it rains).
 """
+"""System prompt for Gemini itinerary generation."""

@@ -1,7 +1,19 @@
+/**
+ * Vibe page — Step 1 of the Voyager wizard.
+ *
+ * Renders the sticky navigation header with step indicators and
+ * the VibeBoard component for mood board photo upload and analysis.
+ */
+
 import VibeBoard from "@/components/vibe/VibeBoard";
 import { Compass, ChevronRight } from "lucide-react";
 
-export default function VibePage() {
+/**
+ * VibePage component — wraps VibeBoard with navigation chrome.
+ *
+ * @returns The vibe analysis page with header and VibeBoard.
+ */
+export default function VibePage(): JSX.Element {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">

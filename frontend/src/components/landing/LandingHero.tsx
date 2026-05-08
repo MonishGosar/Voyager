@@ -1,9 +1,25 @@
 "use client";
 
+/**
+ * LandingHero — The main landing page hero section.
+ *
+ * Presents the Voyager value proposition with a "status quo vs. Voyager way"
+ * comparison layout. Contains the primary CTA button that navigates users
+ * to the Vibe Board (Step 1).
+ *
+ * This component is a server-rendered page component that uses client-side
+ * navigation via Next.js router.
+ *
+ * @example
+ * ```tsx
+ * <LandingHero />
+ * ```
+ */
+
 import { useRouter } from "next/navigation";
 import { Compass, Bot, ImagePlus, Users, Camera, Settings2, UsersRound } from "lucide-react";
 
-export default function LandingHero() {
+export default function LandingHero(): JSX.Element {
   const router = useRouter();
 
   return (

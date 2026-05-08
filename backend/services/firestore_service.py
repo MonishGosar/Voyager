@@ -83,7 +83,7 @@ def save_itinerary(
         return None
 
     try:
-        from constants import FIRESTORE_ITINERARIES_COLLECTION
+        from constants import FIRESTORE_ITINERARIES_COLLECTION, FIRESTORE_DOCUMENT_VERSION
 
         doc_id = str(uuid.uuid4())
         doc_data = {
@@ -91,7 +91,7 @@ def save_itinerary(
             "meta": meta,
             "vibe": vibe or {},
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "version": "1.0",
+            "version": FIRESTORE_DOCUMENT_VERSION,
         }
         client.collection(FIRESTORE_ITINERARIES_COLLECTION).document(doc_id).set(doc_data)
         logger.info("Itinerary saved to Firestore: %s", doc_id)
