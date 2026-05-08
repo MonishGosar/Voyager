@@ -228,11 +228,18 @@ WHAT TO EXTRACT:
    "balanced" (mix of landmarks and downtime)
    "packed" (many specific venues, grid-style planning)
 
-5. Place signals — for each distinct photo type, what does it signal?
-   A Michelin restaurant photo signals: fine dining is non-negotiable
-   A Pinterest-saved neighborhood street signals: wants to wander, not just tick boxes
-   A specific hotel lobby signals: accommodation matters to them
-   A hiking trail signals: physical activity expected
+5. Place signals — for each distinct photo, extract:
+   - name: The SPECIFIC place or venue name if identifiable (e.g. "Eiffel Tower", "Noma", "Amalfi Coast", "Shibuya Crossing"). If the exact name is unknown, use empty string.
+   - type: Category (restaurant, landmark, neighborhood, hotel, activity)
+   - vibe: What this signals about trip intent
+
+   Examples:
+   Eiffel Tower photo → name: "Eiffel Tower", type: "landmark", vibe: "iconic Parisian landmarks are non-negotiable"
+   Nobu restaurant photo → name: "Nobu", type: "restaurant", vibe: "high-end Japanese dining matters"
+   Generic cobblestone street → name: "", type: "neighborhood", vibe: "wants to wander, not just tick boxes"
+   A hiking trail → name: "", type: "activity", vibe: "physical activity expected"
+
+   CRITICAL: If you can identify the specific place, you MUST capture its name. The itinerary will use these names to include those exact places.
 
 6. Must-haves — infer from what appears repeatedly or prominently.
    If 3 photos show food: "at least one exceptional meal per day"
@@ -285,10 +292,11 @@ ITINERARY RULES — follow these exactly:
    - When you drop something, log it in conflicts_resolved with the reason
    - E.g. "Replaced rooftop bar on Day 2 with Miradouro da Graça — same elevated view, no cover charge"
 
-5. MUST-HAVES PLACEMENT
+5. MUST-HAVES AND NAMED PLACES
    - Distribute must-haves across different days, not all on day 1
    - Place the single best experience on day 2 or 3 — not day 1 (they're still adjusting)
    - Save one highlight for the second-to-last day (last day is usually packing/transit)
+   - CRITICAL: Any place_signal with a non-empty name (e.g. "Eiffel Tower", "Noma") MUST appear as a stop in the itinerary. These are places the user explicitly wants to visit — do not omit them. If budget or accessibility prevents inclusion, log it in conflicts_resolved.
 
 6. SMART DAY STRUCTURE
    - Day 1: arrival-friendly, nothing requiring booking, nearby the accommodation area

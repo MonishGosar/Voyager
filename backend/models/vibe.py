@@ -14,9 +14,11 @@ class PlaceSignal(BaseModel):
     """A signal extracted from a mood board photo about trip intent.
 
     Attributes:
+        name: Specific place/venue name if identifiable (e.g. 'Eiffel Tower', 'Noma').
         type: Category of place (restaurant, landmark, neighborhood, hotel, activity).
         vibe: What this place signals about the traveler's preferences.
     """
+    name: str = Field(default="", description="Specific place or venue name if identifiable from the photo")
     type: str = Field(..., description="Category: restaurant, landmark, neighborhood, hotel, or activity")
     vibe: str = Field(..., description="What this place signals about trip intent")
 
