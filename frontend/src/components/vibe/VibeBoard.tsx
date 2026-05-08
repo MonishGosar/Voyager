@@ -53,6 +53,11 @@ export default function VibeBoard(): JSX.Element {
           setTags(data.tags || []);
           setDestinations(validDests);
 
+          // Auto-select the single AI-picked destination
+          if (validDests.length > 0) {
+            setSelected(validDests[0].name);
+          }
+
           if (hasApiError && validDests.length === 0) {
             setAnalysisError("AI model unavailable — destinations couldn't be generated. You can still continue manually.");
           }
@@ -208,31 +213,18 @@ export default function VibeBoard(): JSX.Element {
         </div>
       )}
 
-      {/* Destinations */}
+      {/* Destination — single AI pick */}
       {destinations.length > 0 && (
         <div className="space-y-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">AI matched destinations</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {destinations.map(dest => (
-              <button
-                key={dest.name}
-                onClick={() => setSelected(dest.name === selected ? "" : dest.name)}
-                className={`rounded-2xl border p-5 text-left transition-all duration-200 group relative overflow-hidden
-                  ${selected === dest.name
-                    ? "border-blue-500 bg-blue-50/80 ring-2 ring-blue-500/20 shadow-md -translate-y-0.5"
-                    : "bg-card hover:border-blue-200 hover:shadow-md hover:-translate-y-0.5"
-                  }`}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 transition-opacity ${selected === dest.name ? "opacity-100" : "group-hover:opacity-100"}`} />
-                <p className="font-semibold text-base text-foreground relative">{dest.name}</p>
-                <p className="text-sm text-muted-foreground mt-0.5 relative">{dest.country}</p>
-                {selected === dest.name && (
-                  <span className="absolute top-3 right-3 h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center">
-                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  </span>
-                )}
-              </button>
-            ))}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">AI recommended destination</p>
+          <div className="rounded-2xl border border-blue-500 bg-blue-50/80 ring-2 ring-blue-500/20 shadow-md p-5 flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-xl text-foreground">{destinations[0].name}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{destinations[0].country}</p>
+            </div>
+            <span className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
           </div>
         </div>
       )}
@@ -240,8 +232,6 @@ export default function VibeBoard(): JSX.Element {
       <div className="pt-6 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
         {previews.length === 0 ? (
           <p className="text-sm text-muted-foreground">Upload photos to detect your vibe</p>
-        ) : !selected && destinations.length > 0 ? (
-          <p className="text-sm text-muted-foreground">Pick a destination to continue</p>
         ) : (
           <div />
         )}
