@@ -52,14 +52,16 @@ logger = logging.getLogger(__name__)
 # Gemini Client Initialization
 # ──────────────────────────────────────────────
 
-if settings.GOOGLE_CLOUD_PROJECT:
+if settings.GEMINI_API_KEY:
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+elif settings.GOOGLE_CLOUD_PROJECT:
     client = genai.Client(
         vertexai=True,
         project=settings.GOOGLE_CLOUD_PROJECT,
         location=settings.GOOGLE_CLOUD_LOCATION,
     )
 else:
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    client = genai.Client(api_key="")
 
 # ──────────────────────────────────────────────
 # TypedDict schemas for Gemini structured output
@@ -218,6 +220,18 @@ def _build_default_vibe_profile() -> dict[str, object]:
     }
 
 
+def _safe_ai_error_message(error: Exception) -> str:
+    """Return a user-safe AI failure message without leaking provider details."""
+    message = str(error)
+    if "SERVICE_DISABLED" in message or "aiplatform.googleapis.com" in message:
+        return "AI service is not enabled for this deployment."
+    if "PERMISSION_DENIED" in message or "403" in message:
+        return "AI service permission denied for this deployment."
+    if "quota" in message.lower():
+        return "AI service quota exceeded. Please try again later."
+    return "AI service is temporarily unavailable. Please try again."
+
+
 def _log_vibe_analytics(result: dict[str, object], num_images: int) -> None:
     """Log vibe analysis event to BigQuery (best-effort, non-blocking).
 
@@ -299,6 +313,7 @@ def analyze_vibe(images: list[bytes]) -> dict[str, object]:
         return error_profile
 
     except Exception as e:
+        safe_message = _safe_ai_error_message(e)
         logger.error(
             "analyze_vibe: Gemini API call failed for %d images: %s",
             len(images),
@@ -307,7 +322,7 @@ def analyze_vibe(images: list[bytes]) -> dict[str, object]:
         error_profile = _build_default_vibe_profile()
         error_profile["tags"] = ["API Error"]
         error_profile["mood"] = "Unable to analyze"
-        error_profile["suggested_destinations"] = [{"name": "Error", "country": str(e)}]
+        error_profile["suggested_destinations"] = [{"name": "Error", "country": safe_message}]
         return error_profile
 
 

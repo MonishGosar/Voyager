@@ -136,7 +136,7 @@ Create a `.env` file in the project root (or copy from `.env.example`):
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | Yes* | API key for Google Gemini (AI Studio mode). Get one from [AI Studio](https://aistudio.google.com/). Required unless `GOOGLE_CLOUD_PROJECT` is set. |
 | `GOOGLE_MAPS_API_KEY` | No | API key for Google Maps/Places APIs. Used for map rendering. |
-| `GOOGLE_CLOUD_PROJECT` | No | GCP project ID. When set, enables Firestore persistence, BigQuery analytics, and switches Gemini to Vertex AI mode. |
+| `GOOGLE_CLOUD_PROJECT` | No | GCP project ID. Enables Firestore persistence and BigQuery analytics. Gemini uses Vertex AI only when `GEMINI_API_KEY` is not set. |
 | `GOOGLE_CLOUD_LOCATION` | No | GCP region for Vertex AI and BigQuery (default: `us-central1`). |
 
 \* Either `GEMINI_API_KEY` or `GOOGLE_CLOUD_PROJECT` must be set for AI features to work.

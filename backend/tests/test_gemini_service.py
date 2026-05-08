@@ -67,7 +67,24 @@ class TestAnalyzeVibe:
         assert result["mood"] == "Unable to analyze"
         assert result["travel_style"] == "slow explorer"
         assert len(result["suggested_destinations"]) == 1
-        assert "Quota exceeded" in result["suggested_destinations"][0]["country"]
+        assert "quota exceeded" in result["suggested_destinations"][0]["country"].lower()
+
+    @patch("services.gemini_service.client")
+    def test_analyze_vibe_sanitizes_permission_error(self, mock_client):
+        """Provider permission errors should not leak raw cloud diagnostics."""
+        from services.gemini_service import analyze_vibe
+
+        mock_client.models.generate_content.side_effect = Exception(
+            "403 PERMISSION_DENIED. SERVICE_DISABLED aiplatform.googleapis.com project-id"
+        )
+
+        fake_image = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+        result = analyze_vibe([fake_image])
+
+        country = result["suggested_destinations"][0]["country"]
+        assert country == "AI service is not enabled for this deployment."
+        assert "aiplatform.googleapis.com" not in country
+        assert "project-id" not in country
 
     @patch("services.gemini_service.client")
     def test_analyze_vibe_with_multiple_images(self, mock_client):

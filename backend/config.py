@@ -24,8 +24,8 @@ class Settings(BaseSettings):
         GEMINI_API_KEY: API key for Google Gemini (AI Studio mode).
             Required unless GOOGLE_CLOUD_PROJECT is set (Vertex AI mode).
         GOOGLE_MAPS_API_KEY: API key for Google Maps/Places APIs.
-        GOOGLE_CLOUD_PROJECT: GCP project ID. Enables Firestore, BigQuery,
-            and Vertex AI mode for Gemini.
+        GOOGLE_CLOUD_PROJECT: GCP project ID. Enables Firestore and BigQuery.
+            Gemini uses Vertex AI only when GEMINI_API_KEY is not set.
         GOOGLE_CLOUD_LOCATION: GCP region for Vertex AI and BigQuery.
     """
 
