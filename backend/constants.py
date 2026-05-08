@@ -250,8 +250,9 @@ WHAT TO EXTRACT:
    No beaches → likely wants urban or inland
    No nightlife → morning/afternoon focused traveler
 
-8. Exactly 3 suggested destinations: the cities that satisfy the most signals simultaneously.
-   Not the most famous cities — the most accurate ones.
+8. Exactly 1 suggested destination: the single city that best satisfies the most signals simultaneously.
+   Commit to one answer — not the most famous city, the most accurate one for this specific board.
+   Do not hedge with alternatives.
 
 9. Meal style: infer from the food/restaurant photos present.
    Options: "fine dining" | "street food" | "local trattorias" | "mixed"
