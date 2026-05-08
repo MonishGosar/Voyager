@@ -56,12 +56,12 @@ export default function VibeBoard() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 py-12 animate-fade-up">
-      <div className="space-y-2">
-        <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground">
+    <div className="max-w-4xl mx-auto space-y-8 py-12 px-4 animate-fade-up">
+      <div className="space-y-2 text-center md:text-left">
+        <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
           What's your travel vibe?
         </h1>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground text-lg md:text-xl max-w-2xl">
           Drop photos that inspire your next trip. Our AI reads the mood.
         </p>
       </div>
@@ -76,28 +76,47 @@ export default function VibeBoard() {
       />
 
       <div 
-        className="border-2 border-dashed border-border rounded-xl p-16 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer group flex items-center justify-center bg-card shadow-sm"
-        onClick={() => fileInputRef.current?.click()}
+        className={`border-2 border-dashed border-border rounded-2xl transition-all cursor-pointer group flex items-center justify-center bg-card shadow-sm overflow-hidden ${previews.length > 0 ? 'p-6' : 'p-20 hover:border-blue-400 hover:bg-blue-50/50'}`}
+        onClick={() => {
+          if (previews.length === 0) fileInputRef.current?.click();
+        }}
       >
-        <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center gap-4 text-center w-full">
           {loading ? (
-             <div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center">
-               <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+             <div className="flex flex-col items-center gap-4 py-12">
+               <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center">
+                 <Loader2 className="h-7 w-7 text-blue-600 animate-spin" />
+               </div>
+               <p className="text-sm font-medium text-muted-foreground animate-pulse">Reading visual aesthetics...</p>
              </div>
           ) : previews.length > 0 ? (
-             <div className="flex gap-2 justify-center">
-               {previews.map((src, i) => (
-                 <img key={i} src={src} className="h-16 w-16 object-cover rounded-md shadow-sm" alt="Preview" />
-               ))}
+             <div className="w-full space-y-4">
+               <div className="flex justify-between items-center mb-2">
+                 <p className="text-sm font-medium text-muted-foreground">Your Inspiration Board</p>
+                 <button 
+                   onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                   className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full transition-colors"
+                 >
+                   + Add more photos
+                 </button>
+               </div>
+               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
+                 {previews.map((src, i) => (
+                   <div key={i} className="aspect-[4/3] rounded-xl overflow-hidden shadow-sm group/img relative">
+                     <img src={src} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105" alt={`Inspiration ${i + 1}`} />
+                     <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors" />
+                   </div>
+                 ))}
+               </div>
              </div>
           ) : (
             <>
-              <div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                <Upload className="h-6 w-6 text-blue-600" />
+              <div className="h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                <Upload className="h-8 w-8 text-blue-600" />
               </div>
               <div>
-                <p className="font-medium text-foreground">Click to upload photos</p>
-                <p className="text-sm text-muted-foreground mt-1">up to 6 images</p>
+                <p className="font-semibold text-foreground text-lg">Click to upload photos</p>
+                <p className="text-sm text-muted-foreground mt-1">Accepts JPG, PNG, WEBP (up to 6 images)</p>
               </div>
             </>
           )}
@@ -106,18 +125,18 @@ export default function VibeBoard() {
 
       {tags.length > 0 && (
         <div className="space-y-4 animate-fade-up" style={{ animationDelay: '100ms' }}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Detected vibe
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Detected aesthetic
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5">
             {tags.map(tag => (
               <span 
                 key={tag} 
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary hover:bg-destructive/10 hover:text-destructive text-secondary-foreground rounded-full text-sm font-medium transition-colors cursor-pointer border border-transparent hover:border-destructive/20"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-secondary hover:bg-destructive/10 hover:text-destructive text-secondary-foreground rounded-full text-sm font-medium transition-colors cursor-pointer border border-transparent hover:border-destructive/20 shadow-sm"
                 onClick={() => removeTag(tag)}
               >
                 {tag}
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4 opacity-70" />
               </span>
             ))}
           </div>
@@ -126,32 +145,34 @@ export default function VibeBoard() {
 
       {destinations.length > 0 && (
         <div className="space-y-4 animate-fade-up" style={{ animationDelay: '200ms' }}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Suggested destinations
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            AI matched destinations
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {destinations.map(dest => (
               <button 
                 key={dest.name}
                 onClick={() => setSelected(dest.name)}
-                className={`rounded-xl border p-4 text-left transition-all hover:shadow-md ${selected === dest.name ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500 shadow-sm" : "bg-card hover:border-blue-300"}`}
+                className={`rounded-2xl border p-5 text-left transition-all duration-200 hover:shadow-md ${selected === dest.name ? "border-blue-500 bg-blue-50/80 ring-2 ring-blue-500/20 shadow-md transform -translate-y-1" : "bg-card hover:border-blue-300"}`}
               >
-                <p className="font-semibold text-foreground">{dest.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{dest.country}</p>
+                <p className="font-semibold text-lg text-foreground">{dest.name}</p>
+                <p className="text-sm text-muted-foreground mt-1">{dest.country}</p>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      <button 
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-sm"
-        onClick={goToStep2} 
-        disabled={tags.length === 0 || loading}
-      >
-        Continue to trip details
-        <ArrowRight className="h-4 w-4" />
-      </button>
+      <div className="pt-6 border-t flex justify-end">
+        <button 
+          className="w-full sm:w-auto px-8 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+          onClick={goToStep2} 
+          disabled={tags.length === 0 || loading || !selected}
+        >
+          {selected ? `Continue with ${selected}` : "Continue to trip details"}
+          <ArrowRight className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }
