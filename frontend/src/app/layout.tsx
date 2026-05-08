@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
-import { Inter, Fraunces } from 'next/font/google';
+import { DM_Sans, Lora, Inter, Fraunces } from 'next/font/google';
 import "./globals.css";
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
+  weight: ['400', '500', '600', '700'],
 });
 
-const fraunces = Fraunces({
+const lora = Lora({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
-  weight: ['400', '600'],
+  weight: ['400', '500', '600', '700'],
   style: ['normal', 'italic'],
 });
 
 export const metadata: Metadata = {
-  title: "TripMind Voyager",
+  title: "Voyager",
   description: "The world's first constraint-solving, vibe-reading travel intelligence engine.",
 };
 
@@ -28,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${fraunces.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${dmSans.variable} ${lora.variable} font-sans antialiased bg-background text-foreground`}>
         {children}
       </body>
     </html>
